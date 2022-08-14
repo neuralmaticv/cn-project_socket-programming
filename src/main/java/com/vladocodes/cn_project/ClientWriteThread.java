@@ -38,11 +38,9 @@ public class ClientWriteThread extends Thread {
                 if (userInput.equals("igraj")) {
                     System.out.print("[?] Unesite ime igraca:");
                     userInput = "igraj-" + sc.nextLine();
-
                 } else if (userInput.equals("gledaj")) {
                     System.out.print("[?] Unesite ID igre:");
                     userInput = "gledaj-" + sc.nextLine();
-
                 }
 
                 toServer.println(userInput);
