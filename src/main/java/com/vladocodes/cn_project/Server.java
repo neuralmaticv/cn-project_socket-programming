@@ -59,6 +59,12 @@ public class Server {
         }
     }
 
+    public void broadcastToAllFreePlayers(String message) {
+        this.users.stream()
+                .filter(u -> !u.isPlaying())
+                .forEach(u -> u.sendMessage("[OBAVJESTENJE]: " + message));
+    }
+
     public void broadcast(ClientHandler sender, String opponent, String message) {
         for (ClientHandler u : users) {
             if (u.getUsername().equals(opponent)) {
@@ -89,6 +95,15 @@ public class Server {
                     .map(ClientHandler::getUsername)
                     .collect(Collectors.toList());
         }
+    }
+
+    public ClientHandler getUser(String username) {
+        for (ClientHandler u : users) {
+            if (u.getUsername().equals(username))
+                return u;
+        }
+
+        return null;
     }
     
     public String getUsersPlaying() {
