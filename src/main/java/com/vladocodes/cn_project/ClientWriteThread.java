@@ -27,7 +27,7 @@ public class ClientWriteThread extends Thread {
         // Then send input to server line by line, until exit
         try (Scanner sc = new Scanner(System.in)) {
             String userInput;
-            System.out.println("Opcije: igraj i gledaj");
+            System.out.println("Opcije: igraj ili posmatraj");
             System.out.print("[?] Izaberite opciju:");
 
             do {
@@ -38,9 +38,9 @@ public class ClientWriteThread extends Thread {
                 if (userInput.equals("igraj")) {
                     System.out.print("[?] Unesite ime igraca:");
                     userInput = "igraj-" + sc.nextLine();
-                } else if (userInput.equals("gledaj")) {
+                } else if (userInput.equals("posmatraj")) {
                     System.out.print("[?] Unesite ID igre:");
-                    userInput = "gledaj-" + sc.nextLine();
+                    userInput = "posmatraj-" + sc.nextLine();
                 }
 
                 toServer.println(userInput);
