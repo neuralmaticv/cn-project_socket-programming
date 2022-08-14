@@ -5,15 +5,12 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
 public class ClientHandler extends Thread {
     private final Server server;
     private final Socket socket;
-    private BufferedReader input;
-    private PrintWriter output;
+    private BufferedReader fromUser;
+    private PrintWriter toUser;
     private String username;
     private boolean playing;
     private String symbol;
@@ -25,20 +22,20 @@ public class ClientHandler extends Thread {
         this.server = server;
         this.playing = false;
 
-        this.input = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
-        this.output = new PrintWriter(this.socket.getOutputStream(), true);
+        this.fromUser = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
+        this.toUser = new PrintWriter(this.socket.getOutputStream(), true);
     }
 
     @Override
     public void run() {
         try {
             // Upon connecting, read username and send connected users list
-            this.username = input.readLine();
+            this.username = fromUser.readLine();
 
             if (!server.isUsernameValid(username)) {
-                output.println("Username is used");
+                toUser.println("Username is used");
             } else {
-                output.println("OK");
+                toUser.println("OK");
                 this.server.users.add(this);
                 this.sendMessage("Igraci koji ne igraju: " + this.server.getFreeUsers(this));
                 this.sendMessage("Igraci koji igraju: " + this.server.getUsersPlaying());
@@ -48,7 +45,7 @@ public class ClientHandler extends Thread {
                 String userInput;
                 do {
 
-                    userInput = input.readLine();
+                    userInput = fromUser.readLine();
                     if (userInput == null) {
                         break;
                     }
@@ -56,44 +53,66 @@ public class ClientHandler extends Thread {
                     // analyze input
                     if (userInput.startsWith("igraj-")) {
                         String info[] = userInput.split("-");
+
                         opponent = this.server.getUser(info[1]);
                         opponent.opponent = this;
                         this.symbol = "X";
                         this.opponent.symbol = "O";
+
                         String msg = "[" + this.username + "]: Igraj sa mnom? da/ne";
-                        this.server.broadcast(this, info[1], msg);
+                        this.opponent.sendMessage(msg);
                     }
-                    if (userInput.startsWith("gledaj-")) {
+
+                    if (userInput.startsWith("posmatraj-")) {
                         String info[] = userInput.split("-");
                         int gameID = Integer.parseInt(info[1]);
-                        this.server.allGames.get(gameID).addViewer(this);
+                        this.server.allGames.get(gameID).addWatcher(this);
                     }
+
                     if (userInput.equals("da")) {
-                        this.server.broadcast(this, this.opponent.username, "[OBAVJESTENJE]: Pocinje igra");
-                        this.server.broadcast(this, this.username, "[OBAVJESTENJE]: Pocinje igra");
                         this.playing = true;
                         this.opponent.playing = true;
-                        String notification = this.username + " i " + this.opponent.username + " zapocinju igru!";
-                        this.game = new Game(this, this.opponent);
+
+                        this.game = new Game(this, this.opponent, this.server.allGames.size());
                         this.opponent.game = game;
                         this.server.allGames.put(this.server.allGames.size(), this.game);
 
+                        this.sendMessage(this.game.getInfo());
+                        this.opponent.sendMessage(this.game.getInfo());
+
+                        String notification = this.username + " i " + this.opponent.username + " zapocinju igru!";
                         this.server.broadcastToAllFreePlayers(notification);
-                        this.server.broadcastToAllFreePlayers(this.server.getUsersPlaying());
+                        this.server.broadcastToAllFreePlayers("Igraci koji ne igraju: " + this.server.getFreeUsers(this));
+                        this.server.broadcastToAllFreePlayers("Igraci koji igraju: " + this.server.getUsersPlaying());
                     } else if (userInput.equals("ne")) {
-                        String msg = this.opponent.username + " je odbio poziv za igru.";
-                        this.server.broadcast(this, this.username, msg);
+                        String msg = "[OBAVJESTENJE]:" + this.opponent.username + " je odbio poziv za igru.";
+                        this.sendMessage(msg);
                     } else if (userInput.matches("[1-9]")) {
-                        this.game.placeSymbol(this, Integer.parseInt(userInput));
+                        int positionIndex = Integer.parseInt(userInput);
+
+                        if (this.symbol.equals(this.game.getActivePlayerSymbol())) {
+                            this.sendMessage("[UPOZORENJE]: Na redu je drugi igrac!");
+                        } else if (this.game.isPositionAvailable(positionIndex)) {
+                            this.game.placeSymbol(this, positionIndex);
+                        } else {
+                            this.sendMessage("[UPOZORENJE]: Pozicija je vec markirana, pokusajte ponovo.");
+                        }
+
+                        userInput = "Biram poziciju " + userInput;
+                    }
+
+                    if (this.isPlaying()) {
+                        String msg = "[" + this.username + "]:" + userInput;
+                        this.server.broadcast(this, msg);
                     }
                 } while (!userInput.equals("exit"));
 
                 // Broadcast that user has disconnected
                 this.server.broadcastToAll(this, this.username + " has left the game.");
             }
-        } catch (IOException ex) {
-            System.out.println("Error in UserThread: " + ex.getMessage());
-            ex.printStackTrace();
+        } catch (IOException e) {
+            System.out.println("Error in ClientHandler: " + e.getMessage());
+            e.printStackTrace();
         } finally {
             this.server.remove(this);
             try {
@@ -104,10 +123,9 @@ public class ClientHandler extends Thread {
         }
     }
 
-
     void sendMessage(String message) {
-        if (this.output != null)
-            this.output.println(message);
+        if (this.toUser != null)
+            this.toUser.println(message);
     }
 
     public boolean isPlaying() {
@@ -120,5 +138,13 @@ public class ClientHandler extends Thread {
 
     public String getSymbol() {
         return symbol;
+    }
+
+    public int getGameID() {
+        return this.game.getID();
+    }
+
+    public Server getServer() {
+        return server;
     }
 }
