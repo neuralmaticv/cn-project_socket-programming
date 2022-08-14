@@ -6,19 +6,19 @@ import java.io.InputStreamReader;
 import java.net.Socket;
 
 public class ClientReadThread extends Thread {
-    private BufferedReader fromServer;
     private String username;
-
+    private BufferedReader fromServer;
 
     ClientReadThread(Socket socket, String username) {
         this.username = username;
+
         try {
             this.fromServer = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         } catch (IOException e) {
+            System.out.println("Error getting input stream: " + e.getMessage());
             e.printStackTrace();
         }
     }
-
 
     @Override
     public void run() {
@@ -31,6 +31,7 @@ public class ClientReadThread extends Thread {
                     System.err.println("\rConnection lost.");
                     return;
                 }
+                // carriage return, rewrite previous msg
                 System.out.println("\r" + response);
 
                 // Print prompt

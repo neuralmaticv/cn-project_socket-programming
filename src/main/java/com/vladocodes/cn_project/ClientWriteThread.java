@@ -14,14 +14,16 @@ public class ClientWriteThread extends Thread {
 
         try {
             this.toServer = new PrintWriter(socket.getOutputStream(), true);
-        } catch (IOException ex) {
-            System.out.println("Error getting output stream: " + ex.getMessage());
-            ex.printStackTrace();
+        } catch (IOException e) {
+            System.out.println("Error getting output stream: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
     @Override
     public void run() {
+        // Send username
+        // this.toServer.println(username);
         // Then send input to server line by line, until exit
         try (Scanner sc = new Scanner(System.in)) {
             String userInput;
@@ -29,6 +31,8 @@ public class ClientWriteThread extends Thread {
             System.out.print("[?] Izaberite opciju:");
 
             do {
+                // carriage return, rewrite previous msg
+                System.out.printf("\r[%s]: ", this.username);
                 userInput = sc.nextLine();
 
                 if (userInput.equals("1")) {
