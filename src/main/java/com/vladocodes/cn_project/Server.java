@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 public class Server {
     public static final int PORT = 12345;
     public final Set<ClientHandler> users;
-    public final Map<Integer, Set<ClientHandler>> usersInGame;
+    public final Map<Integer, Game> allGames;
 
     public static void main(String[] args) {
         Server server = new Server();
@@ -18,7 +18,7 @@ public class Server {
 
     public Server() {
         this.users = Collections.synchronizedSet(new HashSet<>());
-        this.usersInGame = Collections.synchronizedMap(new HashMap<>());
+        this.allGames = Collections.synchronizedMap(new HashMap<>());
     }
 
     private void execute() {
@@ -109,10 +109,10 @@ public class Server {
     public String getUsersPlaying() {
         StringBuilder sb = new StringBuilder();
 
-        for (Map.Entry<Integer, Set<ClientHandler>> e : usersInGame.entrySet()) {
-            sb.append(e.getKey()).append("-[");
+        for (Map.Entry<Integer, Game> g : allGames.entrySet()) {
+            sb.append(g.getKey()).append("-[");
 
-            for (ClientHandler u : e.getValue()) {
+            for (ClientHandler u : g.getValue().getPlayers()) {
                 sb.append(u.getUsername()).append(" ");
             }
 
