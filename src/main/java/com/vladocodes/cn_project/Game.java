@@ -1,6 +1,7 @@
 package com.vladocodes.cn_project;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -12,6 +13,8 @@ public class Game {
     private String[][] board = new String[3][3];
     private Set<Integer> markedPositions;
     private int id;
+    private String winnerName;
+    private boolean endOfGame = false;
 
     public Game(ClientHandler player1, ClientHandler player2, int ID) {
         this.player1 = player1;
@@ -20,7 +23,7 @@ public class Game {
         this.watchers.add(player1);
         this.watchers.add(player2);
         this.id = ID;
-        this.markedPositions = new HashSet<>();
+        this.markedPositions = Collections.synchronizedSet(new HashSet<>());
 
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
@@ -66,10 +69,22 @@ public class Game {
         displayBoard();
         moveCount++;
 
+        String message = "";
+
         if (moveCount >= 5 && checkWin()) {
-            ;
+            message = "[OBAVJESTENJE]: Pobijednik je "  + this.getWinnerName();
         } else if (moveCount == 9 && !checkWin()) {
-            this.player1.getServer().broadcast(player1, "[OBAVJESTENJE]: Nerijeseno!");
+            message = "Nerijeseno!";
+            endOfGame = true;
+        }
+
+        if (this.isEndOfGame()) {
+            player1.setPlaying(false);
+            player2.setPlaying(false);
+
+            for (ClientHandler v : watchers) {
+                v.sendMessage(message);
+            }
         }
     }
 
@@ -114,12 +129,12 @@ public class Game {
             }
 
             if (countX == 3) {
-                String playerName = this.player1.getSymbol().equals("X") ? this.player1.getUsername() : this.player2.getUsername();
-                this.player1.getServer().broadcast(player1, "[OBAVJESTENJE]: pobijedio je " + playerName);
+                winnerName = this.player1.getSymbol().equals("X") ? this.player1.getUsername() : this.player2.getUsername();
+                endOfGame = true;
                 return true;
             } else if (countO == 3) {
-                String playerName = this.player1.getSymbol().equals("O") ? this.player1.getUsername() : this.player2.getUsername();
-                this.player1.getServer().broadcast(player1, "[OBAVJESTENJE]: pobijedio je " + playerName);
+                winnerName = this.player1.getSymbol().equals("O") ? this.player1.getUsername() : this.player2.getUsername();
+                endOfGame = true;
                 return true;
             }
         }
@@ -136,8 +151,10 @@ public class Game {
             }
             sb.append("\n");
         }
+        sb.append("\n");
 
         for (ClientHandler v : watchers) {
+            sb.setLength(sb.length() - 1);
             v.sendMessage(sb.toString());
         }
     }
@@ -146,12 +163,12 @@ public class Game {
         this.watchers.add(user);
     }
 
-    public ArrayList<ClientHandler> getPlayers() {
-        ArrayList<ClientHandler> list = new ArrayList<>();
-        list.add(player1);
-        list.add(player2);
-
-        return list;
+    public Set<ClientHandler> getPlayers() {
+        Set<ClientHandler> set = new HashSet<>();
+        set.add(player1);
+        set.add(player2);
+        
+        return set;
     }
 
     public String getInfo() {
@@ -162,6 +179,7 @@ public class Game {
         sb.append("2. Pobjednik je onaj koji prvi spoji tri znaka vodoravno, uspravno ili dijagonalno.").append("\n");
         sb.append(">>>    SRECNO    <<<").append("\n");
 
+        sb.setLength(sb.length() - 1);
         return sb.toString();
     }
 
@@ -175,5 +193,21 @@ public class Game {
 
     public boolean isPositionAvailable(int index) {
         return !markedPositions.contains(index);
+    }
+
+    public String getWinnerName() {
+        return winnerName;
+    }
+
+    public boolean isEndOfGame() {
+        return endOfGame;
+    }
+
+    public Set<ClientHandler> getWatchers() {
+        return watchers;
+    }
+
+    public int getMoveCount() {
+        return moveCount;
     }
 }

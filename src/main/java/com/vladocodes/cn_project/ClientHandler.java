@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Arrays;
+import java.util.HashSet;
 
 public class ClientHandler extends Thread {
     private final Server server;
@@ -12,7 +14,8 @@ public class ClientHandler extends Thread {
     private BufferedReader fromUser;
     private PrintWriter toUser;
     private String username;
-    private boolean playing;
+    private boolean isPlaying;
+    private boolean hasInvite;
     private String symbol;
     private ClientHandler opponent;
     private Game game;
@@ -20,7 +23,8 @@ public class ClientHandler extends Thread {
     public ClientHandler(Socket client, Server server) throws IOException {
         this.socket = client;
         this.server = server;
-        this.playing = false;
+        this.isPlaying = false;
+        this.hasInvite = false;
 
         this.fromUser = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
         this.toUser = new PrintWriter(this.socket.getOutputStream(), true);
@@ -43,7 +47,9 @@ public class ClientHandler extends Thread {
 
                 // Process the user (until he leaves the game)
                 String userInput;
+                boolean skipFlag;
                 do {
+                    skipFlag = false;
 
                     userInput = fromUser.readLine();
                     if (userInput == null) {
@@ -56,26 +62,33 @@ public class ClientHandler extends Thread {
 
                         opponent = this.server.getUser(info[1]);
                         opponent.opponent = this;
-                        this.symbol = "X";
-                        this.opponent.symbol = "O";
 
                         String msg = "[" + this.username + "]: Igraj sa mnom? da/ne";
                         this.opponent.sendMessage(msg);
+                        this.opponent.hasInvite = true;
                     }
 
                     if (userInput.startsWith("posmatraj-")) {
                         String info[] = userInput.split("-");
                         int gameID = Integer.parseInt(info[1]);
-                        this.server.allGames.get(gameID).addWatcher(this);
+                        for (Game g: this.server.allGames.keySet()) {
+                            if (g.getID() == gameID) {
+                                this.server.allGames.get(g).add(this);
+                                g.addWatcher(this);
+                            }
+                        }
                     }
 
-                    if (userInput.equals("da")) {
-                        this.playing = true;
-                        this.opponent.playing = true;
+                    if (userInput.equals("da") && hasInvite) {
+                        this.symbol = "X";
+                        this.opponent.symbol = "O";
+
+                        this.isPlaying = true;
+                        this.opponent.isPlaying = true;
 
                         this.game = new Game(this, this.opponent, this.server.allGames.size());
                         this.opponent.game = game;
-                        this.server.allGames.put(this.server.allGames.size(), this.game);
+                        this.server.allGames.put(this.game, new HashSet<>(Arrays.asList(this, this.opponent)));
 
                         this.sendMessage(this.game.getInfo());
                         this.opponent.sendMessage(this.game.getInfo());
@@ -84,24 +97,25 @@ public class ClientHandler extends Thread {
                         this.server.broadcastToAllFreePlayers(notification);
                         this.server.broadcastToAllFreePlayers("Igraci koji ne igraju: " + this.server.getFreeUsers(this));
                         this.server.broadcastToAllFreePlayers("Igraci koji igraju: " + this.server.getUsersPlaying());
-                    } else if (userInput.equals("ne")) {
-                        String msg = "[OBAVJESTENJE]:" + this.opponent.username + " je odbio poziv za igru.";
-                        this.sendMessage(msg);
-                    } else if (userInput.matches("[1-9]")) {
+                    } else if (userInput.equals("ne") && hasInvite) {
+                        String msg = "[OBAVJESTENJE]:" + this.username + " je odbio poziv za igru.";
+                        this.opponent.sendMessage(msg);
+                    } else if (userInput.matches("[1-9]") && isPlaying) {
                         int positionIndex = Integer.parseInt(userInput);
+                        skipFlag = true;
 
-                        if (this.symbol.equals(this.game.getActivePlayerSymbol())) {
+                        if (this.symbol.equals(this.game.getActivePlayerSymbol()) || (this.symbol.equals("X") && this.game.getMoveCount() == 0)) {
                             this.sendMessage("[UPOZORENJE]: Na redu je drugi igrac!");
                         } else if (this.game.isPositionAvailable(positionIndex)) {
+                            userInput =  "[" + this.username + "]: Biram poziciju " + userInput;
+                            this.server.broadcast(this, userInput);
                             this.game.placeSymbol(this, positionIndex);
                         } else {
                             this.sendMessage("[UPOZORENJE]: Pozicija je vec markirana, pokusajte ponovo.");
                         }
-
-                        userInput = "Biram poziciju " + userInput;
                     }
 
-                    if (this.isPlaying()) {
+                    if (this.isPlaying() && !skipFlag) {
                         String msg = "[" + this.username + "]:" + userInput;
                         this.server.broadcast(this, msg);
                     }
@@ -114,6 +128,11 @@ public class ClientHandler extends Thread {
             System.out.println("Error in ClientHandler: " + e.getMessage());
             e.printStackTrace();
         } finally {
+            if (this.game != null) {
+                this.server.allGames.remove(this.getGameID());
+                this.opponent.game = null;
+                this.opponent.isPlaying = false;
+            }
             this.server.remove(this);
             try {
                 this.socket.close();
@@ -129,7 +148,7 @@ public class ClientHandler extends Thread {
     }
 
     public boolean isPlaying() {
-        return playing;
+        return isPlaying;
     }
 
     String getUsername() {
@@ -140,11 +159,19 @@ public class ClientHandler extends Thread {
         return symbol;
     }
 
+    public Game getGame() {
+        return game;
+    }
+
     public int getGameID() {
         return this.game.getID();
     }
 
     public Server getServer() {
         return server;
+    }
+
+    public void setPlaying(boolean playing) {
+        isPlaying = playing;
     }
 }
