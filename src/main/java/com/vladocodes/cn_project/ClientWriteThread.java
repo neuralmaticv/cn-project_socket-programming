@@ -33,6 +33,7 @@ public class ClientWriteThread extends Thread {
             sb.append("1. Unesite \"igraj\" za početak nove igre;\n");
             sb.append("2. Unesite \"posmatraj\" za posmatranje partije;\n");
             sb.append("3. Unesite \"info\" za statusne informacije.\n");
+            sb.append("3. Unesite \"rezultati\" za rezultate.\n");
             sb.append("\t\t\t");
             System.out.println(sb);
             System.out.print("[?] Izaberite opciju:");

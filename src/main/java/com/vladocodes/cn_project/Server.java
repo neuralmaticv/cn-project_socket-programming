@@ -3,6 +3,9 @@ package com.vladocodes.cn_project;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -126,8 +129,25 @@ public class Server {
         return sb.toString();
     }
 
+    public String getResults() {
+        StringBuilder sb = new StringBuilder();
+        List<String> lines;
+        try {
+            Path filePath = Paths.get("src/main/java/com/vladocodes/cn_project/results.txt");
+
+            lines = Files.readAllLines(filePath);
+            for (String s : lines) {
+                sb.append(s).append("\n");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return sb.toString();
+    }
+
     public void addWatcher(ClientHandler user, int gameID) {
-        for (Game g: this.allGames.keySet()) {
+        for (Game g : this.allGames.keySet()) {
             if (g.getID() == gameID) {
                 this.allGames.get(g).add(user);
                 g.addWatcher(user);
@@ -136,7 +156,7 @@ public class Server {
     }
 
     public void removeWatcher(ClientHandler user) {
-        for (Game g: this.allGames.keySet()) {
+        for (Game g : this.allGames.keySet()) {
             if (g.getWatchers().contains(user)) {
                 this.allGames.get(g).remove(user);
                 g.removeWatcher(user);

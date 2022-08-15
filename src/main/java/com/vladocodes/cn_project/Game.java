@@ -1,5 +1,10 @@
 package com.vladocodes.cn_project;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -69,6 +74,7 @@ public class Game {
                 v.sendMessage(message);
             }
 
+            this.recordResult(player1.getUsername(), player2.getUsername(), winnerName);
             this.server.allGames.remove(this);
         }
     }
@@ -199,5 +205,22 @@ public class Game {
 
     public int getMoveCount() {
         return moveCount;
+    }
+
+    private void recordResult(String player1, String player2, String result) {
+        try {
+            Path filePath = Paths.get("src/main/java/com/vladocodes/cn_project/results.txt");
+
+            if (result == null) {
+                result = "neriješeno";
+            } else {
+                result = "pobijednik je " + result;
+            }
+
+            String record = player1 + " protiv " + player2 + " => ishod: " + result + ";\n";
+            Files.writeString(filePath, record, StandardOpenOption.APPEND);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

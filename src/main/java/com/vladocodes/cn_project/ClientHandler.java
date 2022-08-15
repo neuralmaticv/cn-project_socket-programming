@@ -76,6 +76,9 @@ public class ClientHandler extends Thread {
                     } else if (userInput.equals("info")) {
                         skipFlag = true;
                         this.sendMessage(this.server.getStatusInfo(this));
+                    } else if (userInput.equals("rezultati")) {
+                        skipFlag = true;
+                        this.sendMessage(this.server.getResults());
                     } else if (userInput.equals("da") && hasInvite) {
                         if (this.isWatching) {
                             this.server.removeWatcher(this);
