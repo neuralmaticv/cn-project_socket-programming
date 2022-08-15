@@ -6,7 +6,7 @@ import java.io.InputStreamReader;
 import java.net.Socket;
 
 public class ClientReadThread extends Thread {
-    private String username;
+    private final String username;
     private BufferedReader fromServer;
 
     ClientReadThread(Socket socket, String username) {

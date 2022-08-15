@@ -1,18 +1,19 @@
 package com.vladocodes.cn_project;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
 public class Game {
-    private ClientHandler player1, player2;
+    private final ClientHandler player1;
+    private final ClientHandler player2;
     private String activePlayerSymbol;
-    private Set<ClientHandler> watchers;
+    private final Set<ClientHandler> watchers;
     private int moveCount = 0;
-    private String[][] board = new String[3][3];
-    private Set<Integer> markedPositions;
-    private int id;
+    private final String[][] board = new String[3][3];
+    private final Set<Integer> markedPositions;
+    private final int id;
     private String winnerName;
     private boolean endOfGame = false;
 
@@ -25,10 +26,8 @@ public class Game {
         this.id = ID;
         this.markedPositions = Collections.synchronizedSet(new HashSet<>());
 
-        for (int i = 0; i < board.length; i++) {
-            for (int j = 0; j < board[i].length; j++) {
-                board[i][j] = "-";
-            }
+        for (String[] strings : board) {
+            Arrays.fill(strings, "-");
         }
     }
 
@@ -36,33 +35,15 @@ public class Game {
         activePlayerSymbol = player.getSymbol();
 
         switch (position) {
-            case 1:
-                board[0][0] = activePlayerSymbol;
-                break;
-            case 2:
-                board[0][1] = activePlayerSymbol;
-                break;
-            case 3:
-                board[0][2] = activePlayerSymbol;
-                break;
-            case 4:
-                board[1][0] = activePlayerSymbol;
-                break;
-            case 5:
-                board[1][1] = activePlayerSymbol;
-                break;
-            case 6:
-                board[1][2] = activePlayerSymbol;
-                break;
-            case 7:
-                board[2][0] = activePlayerSymbol;
-                break;
-            case 8:
-                board[2][1] = activePlayerSymbol;
-                break;
-            case 9:
-                board[2][2] = activePlayerSymbol;
-                break;
+            case 1 -> board[0][0] = activePlayerSymbol;
+            case 2 -> board[0][1] = activePlayerSymbol;
+            case 3 -> board[0][2] = activePlayerSymbol;
+            case 4 -> board[1][0] = activePlayerSymbol;
+            case 5 -> board[1][1] = activePlayerSymbol;
+            case 6 -> board[1][2] = activePlayerSymbol;
+            case 7 -> board[2][0] = activePlayerSymbol;
+            case 8 -> board[2][1] = activePlayerSymbol;
+            case 9 -> board[2][2] = activePlayerSymbol;
         }
 
         markedPositions.add(position);
@@ -72,9 +53,9 @@ public class Game {
         String message = "";
 
         if (moveCount >= 5 && checkWin()) {
-            message = "[OBAVJESTENJE]: Pobijednik je "  + this.getWinnerName();
+            message = "[OBAVJEŠTENJE]: Pobijednik je "  + this.getWinnerName();
         } else if (moveCount == 9 && !checkWin()) {
-            message = "Nerijeseno!";
+            message = "Neriješeno!";
             endOfGame = true;
         }
 
@@ -144,14 +125,15 @@ public class Game {
 
     public void displayBoard() {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < board.length; i++) {
+        for (String[] strings : board) {
             sb.append("| ");
-            for (int j = 0; j < board[i].length; j++) {
-                sb.append(board[i][j]).append(" | ");
+
+            for (String string : strings) {
+                sb.append(string).append(" | ");
             }
             sb.append("\n");
         }
-        sb.append("\n");
+        sb.append("\t\t\t");
 
         for (ClientHandler v : watchers) {
             sb.setLength(sb.length() - 1);
@@ -162,6 +144,17 @@ public class Game {
     public void addWatcher(ClientHandler user) {
         this.watchers.add(user);
     }
+    public boolean isPositionAvailable(int index) {
+        return !markedPositions.contains(index);
+    }
+
+    public boolean isEndOfGame() {
+        return endOfGame;
+    }
+
+    public int getID() {
+        return id;
+    }
 
     public Set<ClientHandler> getPlayers() {
         Set<ClientHandler> set = new HashSet<>();
@@ -171,40 +164,24 @@ public class Game {
         return set;
     }
 
-    public String getInfo() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(">>> POCINJE IGRA <<<").append("\n");
-        sb.append("Upute i pravila:").append("\n");
-        sb.append("1. Poziciju za znak birate iz opsega [1-9];").append("\n");
-        sb.append("2. Pobjednik je onaj koji prvi spoji tri znaka vodoravno, uspravno ili dijagonalno.").append("\n");
-        sb.append(">>>    SRECNO    <<<").append("\n");
-
-        sb.setLength(sb.length() - 1);
-        return sb.toString();
-    }
-
-    public int getID() {
-        return id;
-    }
-
     public String getActivePlayerSymbol() {
         return activePlayerSymbol;
     }
 
-    public boolean isPositionAvailable(int index) {
-        return !markedPositions.contains(index);
+    public String getInfo() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(">>> POČINJE IGRA <<<").append("\n");
+        sb.append("Upute i pravila:").append("\n");
+        sb.append("1. Poziciju za znak birate iz opsega [1-9];").append("\n");
+        sb.append("2. Pobjednik je onaj koji prvi spoji tri znaka vodoravno, uspravno ili dijagonalno.").append("\n");
+        sb.append(">>>    SREĆNO    <<<").append("\n");
+        sb.append("\t\t\t");
+
+        return sb.toString();
     }
 
     public String getWinnerName() {
         return winnerName;
-    }
-
-    public boolean isEndOfGame() {
-        return endOfGame;
-    }
-
-    public Set<ClientHandler> getWatchers() {
-        return watchers;
     }
 
     public int getMoveCount() {

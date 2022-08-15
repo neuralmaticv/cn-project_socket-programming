@@ -22,8 +22,8 @@ public class Server {
     }
 
     private void execute() {
-        try (ServerSocket serverSocket = new ServerSocket(this.PORT)) {
-            System.err.println("Server is listening on a port " + this.PORT);
+        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+            System.err.println("Server is listening on a port " + PORT);
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();
@@ -72,7 +72,7 @@ public class Server {
     public void broadcastToAllFreePlayers(String message) {
         this.users.stream()
                 .filter(u -> !u.isPlaying())
-                .forEach(u -> u.sendMessage("[OBAVJESTENJE]: " + message));
+                .forEach(u -> u.sendMessage("[OBAVJEŠTENJE]: " + message));
     }
 
     public void remove(ClientHandler client) {
@@ -114,5 +114,15 @@ public class Server {
         }
 
         return null;
+    }
+
+    public String getStatusInfo(ClientHandler user) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("Igrači koji ne igraju: ").append(this.getFreeUsers(user)).append("\n");
+        sb.append("Igrači koji igraju: ").append(this.getUsersPlaying()).append("\n");
+        sb.append("\t");
+
+        return sb.toString();
     }
 }
