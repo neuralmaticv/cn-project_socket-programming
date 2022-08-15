@@ -15,6 +15,7 @@ public class ClientHandler extends Thread {
     private final PrintWriter toUser;
     private String username;
     private boolean isPlaying;
+    private boolean isWatching;
     private boolean hasInvite;
     private String symbol;
     private ClientHandler opponent;
@@ -24,6 +25,7 @@ public class ClientHandler extends Thread {
         this.socket = client;
         this.server = server;
         this.isPlaying = false;
+        this.isWatching = false;
         this.hasInvite = false;
 
         this.fromUser = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
@@ -69,23 +71,23 @@ public class ClientHandler extends Thread {
                         String[] info = userInput.split("-");
                         int gameID = Integer.parseInt(info[1]);
 
-                        for (Game g: this.server.allGames.keySet()) {
-                            if (g.getID() == gameID) {
-                                this.server.allGames.get(g).add(this);
-                                g.addWatcher(this);
-                            }
-                        }
+                        this.isWatching = true;
+                        this.server.addWatcher(this, gameID);
                     } else if (userInput.equals("info")) {
                         skipFlag = true;
                         this.sendMessage(this.server.getStatusInfo(this));
                     } else if (userInput.equals("da") && hasInvite) {
+                        if (this.isWatching) {
+                            this.server.removeWatcher(this);
+                            this.isWatching = false;
+                        }
                         this.symbol = "X";
                         this.opponent.symbol = "O";
 
                         this.isPlaying = true;
                         this.opponent.isPlaying = true;
 
-                        this.game = new Game(this, this.opponent, this.server.allGames.size());
+                        this.game = new Game(this.server, this, this.opponent, this.server.allGames.size());
                         this.opponent.game = game;
                         this.server.allGames.put(this.game, new HashSet<>(Arrays.asList(this, this.opponent)));
 
@@ -127,11 +129,12 @@ public class ClientHandler extends Thread {
             e.printStackTrace();
         } finally {
             if (this.game != null) {
+                this.opponent.resetStates();
                 this.server.allGames.remove(this.game);
-                this.opponent.game = null;
-                this.opponent.isPlaying = false;
             }
+
             this.server.remove(this);
+
             try {
                 this.socket.close();
             } catch (IOException e) {
@@ -163,5 +166,14 @@ public class ClientHandler extends Thread {
 
     public void setPlaying(boolean playing) {
         isPlaying = playing;
+    }
+
+    public void resetStates() {
+        this.isPlaying = false;
+        this.isWatching = false;
+        this.hasInvite = false;
+        this.symbol = null;
+        this.opponent = null;
+        this.game = null;
     }
 }

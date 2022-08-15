@@ -125,4 +125,22 @@ public class Server {
 
         return sb.toString();
     }
+
+    public void addWatcher(ClientHandler user, int gameID) {
+        for (Game g: this.allGames.keySet()) {
+            if (g.getID() == gameID) {
+                this.allGames.get(g).add(user);
+                g.addWatcher(user);
+            }
+        }
+    }
+
+    public void removeWatcher(ClientHandler user) {
+        for (Game g: this.allGames.keySet()) {
+            if (g.getWatchers().contains(user)) {
+                this.allGames.get(g).remove(user);
+                g.removeWatcher(user);
+            }
+        }
+    }
 }

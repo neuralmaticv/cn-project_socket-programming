@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class Game {
+    private final Server server;
     private final ClientHandler player1;
     private final ClientHandler player2;
     private String activePlayerSymbol;
@@ -17,7 +18,8 @@ public class Game {
     private String winnerName;
     private boolean endOfGame = false;
 
-    public Game(ClientHandler player1, ClientHandler player2, int ID) {
+    public Game(Server server, ClientHandler player1, ClientHandler player2, int ID) {
+        this.server = server;
         this.player1 = player1;
         this.player2 = player2;
         this.watchers = new HashSet<>();
@@ -60,12 +62,14 @@ public class Game {
         }
 
         if (this.isEndOfGame()) {
-            player1.setPlaying(false);
-            player2.setPlaying(false);
+            player1.resetStates();
+            player2.resetStates();
 
             for (ClientHandler v : watchers) {
                 v.sendMessage(message);
             }
+
+            this.server.allGames.remove(this);
         }
     }
 
@@ -144,6 +148,15 @@ public class Game {
     public void addWatcher(ClientHandler user) {
         this.watchers.add(user);
     }
+
+    public void removeWatcher(ClientHandler user) {
+        this.watchers.remove(user);
+    }
+
+    public Set<ClientHandler> getWatchers() {
+        return watchers;
+    }
+
     public boolean isPositionAvailable(int index) {
         return !markedPositions.contains(index);
     }
@@ -180,7 +193,7 @@ public class Game {
         return sb.toString();
     }
 
-    public String getWinnerName() {
+    private String getWinnerName() {
         return winnerName;
     }
 
